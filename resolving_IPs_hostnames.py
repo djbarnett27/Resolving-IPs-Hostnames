@@ -1,13 +1,37 @@
 # resolving_IPs-hostnames.py
 
 ''' 
-This program will resolve one, or several, IP addresses to their respective hostnames, or resolve hostnames into to their respective IP addresses.
+This program will resolve IP addresses to their respective hostnames, 
+or resolve hostnames into to their respective IP addresses.
 
 '''
 
 import socket
+import ipaddress
 from pathlib import Path
 from typing import List
+
+class HostIdentifiers:
+    def __init__(self, host_ids: List[str]):
+        self.host_ids = host_ids
+
+    def save(self, filename: str = "temp_file") -> Path:
+        script_dir = Path(__file__).resolve().parent
+        out_path = script_dir / filename
+        out_path.write_text("\n".join(self.host_ids) + ("\n" if self.host_ids else ""), encoding="utf-8")
+        return out_path
+
+    def run_reverse(self) -> None:
+        print("\nReverse lookup (IP -> hostname):")
+        for host_id in self.host_ids:
+            result = resolve_ip_to_name(host_id)
+            print(f"{host_id:40s} -> {result}")
+
+    def run_forward(self) -> None:
+        print("\nForward lookup (hostname -> IPs):")
+        for host_id in self.host_ids:
+            ips = resolve_name_to_ips(host_id)
+            print(f"{host_id:40s} -> {', '.join(ips)}")
 
 def read_multiline_input(prompt: str = "Paste IPs/hostnames (one per line). End with an empty line:\n") -> List[str]:  
     print(prompt)
@@ -23,18 +47,12 @@ def read_multiline_input(prompt: str = "Paste IPs/hostnames (one per line). End 
     # clean duplicates and blanks, preserve order
     seen = set()
     cleaned = []
-    for l in lines:
-        if not l or l in seen:
+    for entry in lines:
+        if not entry or entry in seen:
             continue
-        seen.add(l)
-        cleaned.append(l)
+        seen.add(entry)
+        cleaned.append(entry)
     return cleaned
-
-def save_entries(entries: List[str], filename: str = "temp_file") -> Path:
-    script_dir = Path(__file__).resolve().parent
-    out_path = script_dir / filename
-    out_path.write_text("\n".join(entries) + ("\n" if entries else ""), encoding="utf-8")
-    return out_path
 
 def resolve_ip_to_name(ip: str) -> str:
     try:
@@ -51,42 +69,31 @@ def resolve_name_to_ips(name: str) -> List[str]:
     except socket.gaierror:
         return ["<resolution failed>"]
 
-def run_reverse(entries: List[str]) -> None:
-    print("\nReverse lookup (IP -> hostname):")
-    for e in entries:
-        result = resolve_ip_to_name(e)
-        print(f"{e:40s} -> {result}")
-
-def run_forward(entries: List[str]) -> None:
-    print("\nForward lookup (hostname -> IPs):")
-    for e in entries:
-        ips = resolve_name_to_ips(e)
-        print(f"{e:40s} -> {', '.join(ips)}")
-
 def main():
-    entries = read_multiline_input()
-    if not entries:
-        print("No entries provided. Exiting.")
-        return
-    out_path = save_entries(entries, filename="temp_file")
-    print(f"\nSaved {len(entries)} entries to: {out_path}")
+    while True:
+        host_ids = read_multiline_input()
+        if not host_ids:
+            print("No host_ids provided.")
+        else:
+            out_path = HostIdentifiers(host_ids).save(filename="temp_file")
+            print(f"\nSaved {len(host_ids)} host_ids to: {out_path}\n")
+            print("Resolving input items:")
+            for host_id in host_ids:
+                # determine whether the input is an IP address or a hostname
+                try:
+                    ipaddress.ip_address(host_id)
+                    # it's an IP -> reverse lookup
+                    result = resolve_ip_to_name(host_id)
+                    print(f"{host_id:40s} -> {result}")
+                except ValueError:
+                    # not an IP -> forward lookup
+                    ips = resolve_name_to_ips(host_id)
+                    print(f"{host_id:40s} -> {', '.join(ips)}")
 
-    # choose action
-    print("\nChoose an action:")
-    print("  1) Resolve IP addresses to hostnames (reverse DNS)")
-    print("  2) Resolve hostnames to IP addresses (forward DNS)")
-    print("  3) Run both")
-    print("  4) Exit")
-    choice = input("Enter 1, 2, 3 or 4: ").strip()
-    if choice == "1":
-        run_reverse(entries)
-    elif choice == "2":
-        run_forward(entries)
-    elif choice == "3":
-        run_reverse(entries)
-        run_forward(entries)
-    else:
-        print("Exiting.")
+        cont = input("\nDo you want to continue? (y/N): ").strip().lower()
+        if cont not in ("y", "yes"):
+            print("Exiting.")
+            break
 
 if __name__ == "__main__":
     main()
