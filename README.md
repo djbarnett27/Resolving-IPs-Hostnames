@@ -5,17 +5,15 @@ The input stops once a blank line after user presses the enter key.
 The script will run and display the DNS forward or reverse lookup information.
 Afterwards, the script will ask if you would like to continue (press "y" key) or quit (press "n" key).
 
-Example:
 Paste IPs/hostnames (one per line). End with an empty line:
 
 8.8.8.8
-www.amazon.com
+cnn.com
 
-#Output
+***Output***
 
 Resolving input items:
 8.8.8.8                                  -> dns.google
-www.amazon.com                           -> 13.225.51.229
+cnn.com                                  -> 151.101.3.5, 151.101.67.5, 151.101.131.5, 151.101.195.5
 
 Do you want to continue? (y/N): 
-
